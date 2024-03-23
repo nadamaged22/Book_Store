@@ -6,11 +6,21 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.bson.Document;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DBMethods {
     public static void addBook(String title,String author,String genre,double price,int quantity){
         MongoCollection<Document> bookcol= DB.getBookCollection();
         // Get the next sequence value
         int nextId = getNextSequence("bookstore_sequence");
+//        String priceString = String.valueOf(price);
+//
+//        // Check if the price is a whole number (integer)
+//        if (price == (long) price) {
+//            // Append ".0" to the price
+//            priceString += ".0";
+//        }
         // Insert a document with the next sequence value as _id
         Document doc = new Document("_id", nextId)
                 .append("title", title)
@@ -22,25 +32,19 @@ public class DBMethods {
         bookcol.insertOne(doc);
 
     }
-    public static void showAvailableBooks() {
+    public static List<Document> showAvailableBooks() {
         MongoCollection<Document> bookcol = DB.getBookCollection();
-
+        List<Document> bookList = new ArrayList<>();
         // Find all documents in the book collection
         FindIterable<Document> books = bookcol.find();
         // Iterate through the documents
-        MongoCursor<Document> iterator = books.iterator();
-        while (iterator.hasNext()) {
-            Document book = iterator.next();
-            // Print the details of each book
-            System.out.println("Book ID: " + book.getInteger("_id"));
-            System.out.println("Title: " + book.getString("title"));
-            System.out.println("Author: " + book.getString("author"));
-            System.out.println("Genre: " + book.getString("genre"));
-            System.out.println("Price: " + book.getDouble("price"));
-            System.out.println("Quantity: " + book.getInteger("quantity"));
-            System.out.println();
+        for (Document bookDoc : books) {
+            bookList.add(bookDoc);
         }
+
+        return bookList;
     }
+
     private static int getNextSequence(String sequenceName) {
         MongoCollection<Document> seqCollection = DB.getSequenceCollection();
 

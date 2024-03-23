@@ -32,16 +32,16 @@ public class BookServer {
         }
     }
 
-    public static void notifyBookAdded(String message) {
-        // Notify all connected clients that a book has been added
-        for (ClientHandler client : users) {
-            try {
-                client.getWriter().write(message);
-                client.getWriter().newLine();
-                client.getWriter().flush();
-            } catch (IOException e) {
-                System.out.println("Error notifying client: " + e.getMessage());
-            }
-        }
-    }
+//    public static void notifyBookAdded(String message) {
+//        // Notify all connected clients that a book has been added
+//        for (ClientHandler client : users) {
+//            try {
+//                client.getWriter().write(message);
+//                client.getWriter().newLine();
+//                client.getWriter().flush();
+//            } catch (IOException e) {
+//                System.out.println("Error notifying client: " + e.getMessage());
+//            }
+//        }
+//    }
 }
