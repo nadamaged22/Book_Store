@@ -1,48 +1,117 @@
 package DB_Methods;
 
 import DBConnection.DB;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoException;
+import com.mongodb.client.*;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.Projections;
 import org.bson.Document;
+import org.bson.conversions.Bson;
+import static com.mongodb.client.model.Filters.eq;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DBMethods {
-    public static void addBook(String title,String author,String genre,double price,int quantity){
-        MongoCollection<Document> bookcol= DB.getBookCollection();
-        // Get the next sequence value
-        int nextId = getNextSequence("bookstore_sequence");
-//        String priceString = String.valueOf(price);
-//
-//        // Check if the price is a whole number (integer)
-//        if (price == (long) price) {
-//            // Append ".0" to the price
-//            priceString += ".0";
-//        }
-        // Insert a document with the next sequence value as _id
-        Document doc = new Document("_id", nextId)
-                .append("title", title)
-                .append("author", author)
-                .append("genre", genre)
-                .append("price", price)
-                .append("quantity", quantity);
 
-        bookcol.insertOne(doc);
-
+    public static void addUser(String name,String username,String password,String role){
+        try{
+            MongoCollection<Document>Usercol=DB.getUserCollection();
+            int nextId=getNextSequence("USER_sequence");
+            Document doc=new Document("_id",nextId)
+                    .append("name",name)
+                    .append("username",username)
+                    .append("password",password)
+                    .append("role",role);
+            // Create a unique index on the username field
+            IndexOptions indexOptions = new IndexOptions().unique(true);
+            Usercol.createIndex(Indexes.ascending("username"), indexOptions);
+            Usercol.insertOne(doc);
+        }catch (Exception e){
+            System.err.println(e.toString());
+        }
     }
+    public static boolean usernameExist(String name) {
+        DB.initializeDatabaseConnection();
+        try {
+            MongoCollection<Document> collection = DB.getUserCollection();
+            Document query = new Document("username", name); // Adjust the query to search for name
+            FindIterable<Document> result = collection.find(query);
+            return result.iterator().hasNext();
+        } catch (Exception e) {
+            System.err.println(e.toString());
+        }
+        return false;
+    }
+    public static boolean checkCredentials(String username, String password) {
+        DB.initializeDatabaseConnection();
+        try {
+            MongoCollection<Document> collection = DB.getUserCollection();
+            Document query = new Document("username", username)
+                    .append("password", password); // Adjust the query to search for both username and password
+            FindIterable<Document> result = collection.find(query);
+            return result.iterator().hasNext();
+        } catch (Exception e) {
+            System.err.println(e.toString());
+        }
+        return false;
+    }
+    public static void addBook(String title,String author,String genre,double price,int quantity){
+        try{
+            MongoCollection<Document> bookcol= DB.getBookCollection();
+            // Get the next sequence value
+            int nextId = getNextSequence("bookstore_sequence");
+            // Insert a document with the next sequence value as _id
+            Document doc = new Document("_id", nextId)
+                    .append("title", title)
+                    .append("author", author)
+                    .append("genre", genre)
+                    .append("price", price)
+                    .append("quantity", quantity);
+
+            bookcol.insertOne(doc);
+        }catch (Exception e) {
+            System.err.println(e.toString());
+        }
+    }
+
     public static List<Document> showAvailableBooks() {
-        MongoCollection<Document> bookcol = DB.getBookCollection();
-        List<Document> bookList = new ArrayList<>();
-        // Find all documents in the book collection
-        FindIterable<Document> books = bookcol.find();
-        // Iterate through the documents
-        for (Document bookDoc : books) {
-            bookList.add(bookDoc);
+        try{
+            MongoCollection<Document> bookcol = DB.getBookCollection();
+            List<Document> bookList = new ArrayList<>();
+            // Find all documents in the book collection
+            FindIterable<Document> books = bookcol.find();
+            // Iterate through the documents
+            for (Document bookDoc : books) {
+                bookList.add(bookDoc);
+            }
+
+            return bookList;
+        }catch (Exception e) {
+            System.err.println(e.toString());
+        }
+        return null;
+    }
+    public static List<Document> getAllUsers() {
+        try{
+            MongoCollection<Document> usercol = DB.getUserCollection();
+            List<Document> userList = new ArrayList<>();
+            // Find all documents in the user collection
+            FindIterable<Document> users = usercol.find();
+            // Iterate through the documents
+            for (Document userDoc : users) {
+                userList.add(userDoc);
+            }
+            return userList;
+        }catch (Exception e) {
+            System.err.println(e.toString());
         }
 
-        return bookList;
+        return null;
     }
 
     private static int getNextSequence(String sequenceName) {

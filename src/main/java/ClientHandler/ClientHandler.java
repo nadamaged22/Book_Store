@@ -34,12 +34,22 @@ public class ClientHandler implements Runnable {
             String request;
             while ((request = reader.readLine()) != null) {
                 // Handle client request
+                if(request.startsWith("REGISTER_USER")){
+                    handleRegisterRequest(request);
+                }
+                if(request.startsWith("LOGIN_USER")){
+                    handleLoginRequest(request);
+                }
                 if (request.startsWith("ADD_BOOK")) {
                     handleAddBookRequest(request); // Pass the reader to handleAddBookRequest
                 }
                 if (request.startsWith("SEE_BOOKS")) {
                     handleSeeBooksRequest(); // Pass the reader to handleAddBookRequest
                 }
+                if (request.startsWith("SEE_USERS")) {
+                    handleSeeUsersRequest(); // Pass the reader to handleAddBookRequest
+                }
+
                 // Add more handlers for other types of requests if needed
             }
 
@@ -49,6 +59,75 @@ public class ClientHandler implements Runnable {
             socket.close();
         } catch (IOException i) {
             System.out.println("Error Handling Client: " + i.getMessage());
+        }
+    }
+
+private void handleRegisterRequest(String request) {
+    try {
+        // Parse the request and handle adding the user to the database
+        String[] requestParts = request.split(",");
+        // Check if requestParts contains enough elements
+        if (requestParts.length >= 4) {
+            // Extract user details from requestParts
+            String name = requestParts[1];
+            String username = requestParts[2];
+            String password = requestParts[3];
+            String role = requestParts[4];
+
+            // Check if the username already exists
+            if (DBMethods.usernameExist(username)) {
+                System.out.println("Username already exists. Registration failed.");
+                // Notify the current client about registration failure with reason
+                BookServer.notifyRegisterResult(username, false, "Username already exists", this);
+                return;
+            }
+            // Call the method to add the user to the database
+            DBMethods.addUser(name, username, password, role);
+            System.out.println("User registered successfully: " + name);
+
+            // Notify the current client about registration result
+            BookServer.notifyRegisterResult(username, true, null, this); // Null for no specific reason
+        } else {
+            System.out.println("Invalid request format: " + request);
+        }
+    } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+        // Handle any errors gracefully
+        System.out.println("Error handling register user request: " + e.getMessage());
+    }
+}
+
+
+    private void handleLoginRequest(String request) {
+        try {
+            String[] requestParts = request.split(",");
+            // Check if requestParts contains enough elements
+            if (requestParts.length >= 2) {
+                String username = requestParts[1];
+                String password = requestParts[2];
+
+                // Assuming DBMethods has a method to check user credentials
+                boolean loginSuccess = DBMethods.checkCredentials(username, password);
+                if (loginSuccess) {
+                    System.out.println("Login successful for user: " + username);
+                    // Notify the current client about login success
+                    BookServer.notifyLoginResult(username, 200, this); // 200 indicates success
+                } else {
+                    System.out.println("Invalid username or password");
+                    // Determine the appropriate status code based on the failure reason
+                    int statusCode = DBMethods.usernameExist(username) ? 401 : 404; // 401 for wrong password, 404 for username not found
+                    // Notify the current client about login failure with appropriate status code
+                    BookServer.notifyLoginResult(username, statusCode, this);
+                }
+            } else {
+                System.out.println("Invalid request format: " + request);
+                // Notify the current client about invalid request format
+                BookServer.notifyLoginResult(null, 400, this); // 400 for bad request
+            }
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            // Handle any errors gracefully
+            System.out.println("Error handling login request: " + e.getMessage());
+            // Notify the current client about internal server error
+            BookServer.notifyLoginResult(null, 500, this); // 500 for internal server error
         }
     }
 
@@ -117,6 +196,43 @@ public class ClientHandler implements Runnable {
             System.out.println("Error handling see books request: " + e.getMessage());
         }
     }
+    private void handleSeeUsersRequest() {
+        try {
+            // Retrieve all users from the database
+            List<Document> users = DBMethods.getAllUsers();
+
+            // Check if there are any users in the database
+            if (users.isEmpty()) {
+                // Notify the client that there are no users available
+                writer.write("No users available.");
+                writer.newLine();
+                writer.flush();
+            } else {
+                // Send the list of users to the client
+                for (Document userDoc : users) {
+                    // Retrieve the user details
+                    int userId = userDoc.getInteger("_id");
+                    String name = userDoc.getString("name");
+                    String username  = userDoc.getString("username");
+                    String password  = userDoc.getString("password");
+                    String role = userDoc.getString("role");
+
+                    // Format the user details and send them to the client
+                    String userDetails = String.format("User ID: %s%nName: %s%nUsername: %s%nPassword: %s%nRole: %s%n", userId,name,username,password,role);
+                    writer.write(userDetails);
+                    writer.newLine();
+                    writer.flush();
+                }
+                // Add a delimiter to mark the end of the list of users
+                writer.write("END_OF_USERS");
+                writer.newLine();
+                writer.flush();
+            }
+        } catch (IOException e) {
+            System.out.println("Error handling see users request: " + e.getMessage());
+        }
+    }
+
 
 }
 
