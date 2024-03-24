@@ -131,6 +131,7 @@ private void handleRegisterRequest(String request) {
         }
     }
 
+
     private void handleAddBookRequest(String request) {
         try {
             // Parse the request and handle adding the book to the database

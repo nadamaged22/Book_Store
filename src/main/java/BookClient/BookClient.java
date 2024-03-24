@@ -11,10 +11,12 @@ import java.util.Scanner;
 public class BookClient {
     private int port;
     private String host;
+    private boolean loggedIn;
 
     public BookClient(String host, int port) {
         this.host = host;
         this.port = port;
+        this.loggedIn = false;
     }
 
     public void startClient() {
@@ -24,26 +26,34 @@ public class BookClient {
             Scanner scanner = new Scanner(System.in);
 
             while (true) {
-                displayMenu();
-                String choice = scanner.nextLine();
-                switch (choice) {
-                    case "1":
-                        registerUser(writer,serverReader,scanner);
-                        break;
-                    case "2":
-                        loginUser(writer, serverReader,scanner);
-                        break;
-
-//                    case "1":
-//                        seeAvailableBooks(writer, serverReader);
-//                        break;
-//                    case "2":
-//                        addBook(writer, scanner);
-//                        break;
-                    case "exit":
-                        return; // Exit the method and close the socket
-                    default:
-                        System.out.println("Invalid choice. Please try again.");
+                if (!loggedIn) {
+                    displayMenu();
+                    String choice = scanner.nextLine();
+                    switch (choice) {
+                        case "1":
+                            registerUser(writer, serverReader, scanner);
+                            break;
+                        case "2":
+                            loginUser(writer, serverReader, scanner);
+                            break;
+                        case "exit":
+                            return; // Exit the method and close the socket
+                        default:
+                            System.out.println("Invalid choice. Please try again.");
+                    }
+                } else {
+                    displayBookMenu();
+                    String choice = scanner.nextLine();
+                    switch (choice) {
+                        case "1":
+                            addBook(writer, scanner);
+                            break;
+                        case "logout":
+                            loggedIn = false;
+                            break;
+                        default:
+                            System.out.println("Invalid choice. Please try again.");
+                    }
                 }
             }
         } catch (IOException e) {
@@ -55,9 +65,17 @@ public class BookClient {
         System.out.println("Menu:");
         System.out.println("1. SignUP");
         System.out.println("2. Login");
+        System.out.println("Type 'exit' to finish.");
+        System.out.print("Enter your choice: ");
 //        System.out.println("1. See available books");
 //        System.out.println("2. Add a book");
 //        System.out.println("Enter your choice (Type 'exit' to finish): ");
+    }
+    private void displayBookMenu() {
+        System.out.println("\nBook Menu:");
+        System.out.println("1. Add Book");
+        System.out.println("Type 'logout' to logout.");
+        System.out.print("Enter your choice: ");
     }
     private void registerUser(BufferedWriter writer, BufferedReader serverReader, Scanner scanner) throws IOException {
         System.out.println("Enter user details:");
@@ -106,6 +124,7 @@ public class BookClient {
                 String user = responseParts[1];
                 if (registerStatus.equals("REGISTER_SUCCESS")) {
                     System.out.println("Registration successful for user: " + user);
+                    loggedIn = true;
                 } else if (registerStatus.equals("REGISTER_FAILURE")) {
                     String failureReason = responseParts.length >= 3 ? responseParts[2] : "Reason not specified";
                     System.out.println("Registration failed for user: " + user + ". Reason: " + failureReason);
@@ -135,23 +154,25 @@ public class BookClient {
         String response = serverReader.readLine();
         if (response != null) {
             String[] responseParts = response.split(",");
-            if (responseParts.length >= 2) {
+            if (responseParts.length >= 3) {
                 String loginStatus = responseParts[0];
-                String user = responseParts[1];
-                if (loginStatus.equals("LOGIN_SUCCESS")) {
-                    System.out.println("Login successful for user: " + user);
+                int statusCode = Integer.parseInt(responseParts[1]);
+                String user = responseParts[2];
+                if (loginStatus.equals("LOGIN_RESULT")) {
+                    if (statusCode == 200) {
+                        System.out.println("Login successful for user: " + user +" "+ "statusCode: "+statusCode);
+                        loggedIn = true;
+                    } else {
+                        System.out.println("Login failed for user: " + user +" "+ "statusCode: "+ statusCode);
+                    }
                 } else {
-                    System.out.println("Login failed for user: " + user);
+                    System.out.println("Invalid response from server.");
                 }
             } else {
-                System.out.println("Invalid response from server.");
+                System.out.println("No response from server.");
             }
-        } else {
-            System.out.println("No response from server.");
         }
     }
-
-
 
     private void seeAvailableBooks(BufferedWriter writer, BufferedReader serverReader) throws IOException {
         writer.write("SEE_BOOKS");
