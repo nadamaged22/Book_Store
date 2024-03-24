@@ -44,4 +44,29 @@ public class BookServer {
 //            }
 //        }
 //    }
+
+    public static void notifyLoginResult(String username, int statusCode, ClientHandler clientHandler) {
+        // Notify the client about login result with appropriate status code
+        try {
+            clientHandler.getWriter().write("LOGIN_RESULT," + statusCode + "," + username);
+            clientHandler.getWriter().newLine();
+            clientHandler.getWriter().flush();
+        } catch (IOException e) {
+            System.out.println("Error notifying client: " + e.getMessage());
+        }
+    }
+    public static void notifyRegisterResult(String username, boolean success, String failureReason, ClientHandler clientHandler) {
+        // Notify the client about registration result with appropriate message
+        try {
+            if (success) {
+                clientHandler.getWriter().write("REGISTER_SUCCESS," + username);
+            } else {
+                clientHandler.getWriter().write("REGISTER_FAILURE," + username + "," + failureReason);
+            }
+            clientHandler.getWriter().newLine();
+            clientHandler.getWriter().flush();
+        } catch (IOException e) {
+            System.out.println("Error notifying client: " + e.getMessage());
+        }
+    }
 }

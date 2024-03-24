@@ -1,7 +1,11 @@
 package BookClient;
 
+import DB_Methods.DBMethods;
+import org.bson.Document;
+
 import java.io.*;
 import java.net.Socket;
+import java.util.List;
 import java.util.Scanner;
 
 public class BookClient {
@@ -24,11 +28,18 @@ public class BookClient {
                 String choice = scanner.nextLine();
                 switch (choice) {
                     case "1":
-                        seeAvailableBooks(writer, serverReader);
+                        registerUser(writer,serverReader,scanner);
                         break;
                     case "2":
-                        addBook(writer, scanner);
+                        loginUser(writer, serverReader,scanner);
                         break;
+
+//                    case "1":
+//                        seeAvailableBooks(writer, serverReader);
+//                        break;
+//                    case "2":
+//                        addBook(writer, scanner);
+//                        break;
                     case "exit":
                         return; // Exit the method and close the socket
                     default:
@@ -42,10 +53,105 @@ public class BookClient {
 
     private void displayMenu() {
         System.out.println("Menu:");
-        System.out.println("1. See available books");
-        System.out.println("2. Add a book");
-        System.out.println("Enter your choice (Type 'exit' to finish): ");
+        System.out.println("1. SignUP");
+        System.out.println("2. Login");
+//        System.out.println("1. See available books");
+//        System.out.println("2. Add a book");
+//        System.out.println("Enter your choice (Type 'exit' to finish): ");
     }
+    private void registerUser(BufferedWriter writer, BufferedReader serverReader, Scanner scanner) throws IOException {
+        System.out.println("Enter user details:");
+        System.out.print("Name: ");
+        String name = scanner.nextLine();
+
+        // Ask for username and validate uniqueness
+        System.out.print("Username: ");
+        String username = scanner.nextLine();
+
+        System.out.print("Password: ");
+        String password = scanner.nextLine();
+        System.out.println("Select Role:");
+        System.out.println("1. Admin");
+        System.out.println("2. User");
+        int roleChoice = 0;
+        boolean validChoice = false;
+
+        while (!validChoice) {
+            try {
+                System.out.print("Enter choice (1 for Admin, 2 for User): ");
+                roleChoice = Integer.parseInt(scanner.nextLine());
+                if (roleChoice == 1 || roleChoice == 2) {
+                    validChoice = true;
+                } else {
+                    System.out.println("Invalid choice. Please enter 1 for Admin or 2 for User.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a number.");
+            }
+        }
+        // Map role choice to role string
+        String role = (roleChoice == 1) ? "admin" : "user";
+
+        // Send request to server to register the user
+        writer.write("REGISTER_USER," + name + "," + username + "," + password + "," + role);
+        writer.newLine();
+        writer.flush();
+
+        // Read response from server
+        String response = serverReader.readLine();
+        if (response != null) {
+            String[] responseParts = response.split(",");
+            if (responseParts.length >= 2) {
+                String registerStatus = responseParts[0];
+                String user = responseParts[1];
+                if (registerStatus.equals("REGISTER_SUCCESS")) {
+                    System.out.println("Registration successful for user: " + user);
+                } else if (registerStatus.equals("REGISTER_FAILURE")) {
+                    String failureReason = responseParts.length >= 3 ? responseParts[2] : "Reason not specified";
+                    System.out.println("Registration failed for user: " + user + ". Reason: " + failureReason);
+                } else {
+                    System.out.println("Invalid response from server.");
+                }
+            } else {
+                System.out.println("Invalid response from server.");
+            }
+        } else {
+            System.out.println("No response from server.");
+        }
+    }
+    private void loginUser(BufferedWriter writer, BufferedReader serverReader, Scanner scanner) throws IOException {
+        System.out.println("Enter login details:");
+        System.out.print("Username: ");
+        String username = scanner.nextLine();
+        System.out.print("Password: ");
+        String password = scanner.nextLine();
+
+        // Send request to server to check credentials
+        writer.write("LOGIN_USER," + username + "," + password);
+        writer.newLine();
+        writer.flush();
+
+        // Read response from server
+        String response = serverReader.readLine();
+        if (response != null) {
+            String[] responseParts = response.split(",");
+            if (responseParts.length >= 2) {
+                String loginStatus = responseParts[0];
+                String user = responseParts[1];
+                if (loginStatus.equals("LOGIN_SUCCESS")) {
+                    System.out.println("Login successful for user: " + user);
+                } else {
+                    System.out.println("Login failed for user: " + user);
+                }
+            } else {
+                System.out.println("Invalid response from server.");
+            }
+        } else {
+            System.out.println("No response from server.");
+        }
+    }
+
+
 
     private void seeAvailableBooks(BufferedWriter writer, BufferedReader serverReader) throws IOException {
         writer.write("SEE_BOOKS");
@@ -55,6 +161,19 @@ public class BookClient {
         System.out.println("Available books:");
         while ((response = serverReader.readLine()) != null) {
             if (response.equals("END_OF_BOOKS")) {
+                break; // Stop reading when encountering the delimiter
+            }
+            System.out.println(response);
+        }
+    }
+    private void seeAvailableUsers(BufferedWriter writer, BufferedReader serverReader) throws IOException {
+        writer.write("SEE_USERS");
+        writer.newLine();
+        writer.flush();
+        String response;
+        System.out.println("Available users:");
+        while ((response = serverReader.readLine()) != null) {
+            if (response.equals("END_OF_USERS")) {
                 break; // Stop reading when encountering the delimiter
             }
             System.out.println(response);
