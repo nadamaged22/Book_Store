@@ -1,5 +1,6 @@
 package ClientHandler;
 
+import BookClient.BookClient;
 import BookServer.BookServer;
 import DB_Methods.DBMethods;
 import org.bson.Document;
@@ -16,9 +17,11 @@ import java.util.List;
 public class ClientHandler implements Runnable {
     private Socket socket;
     private BufferedWriter writer;
+    public BookClient bookClient;
 
-    public ClientHandler(Socket socket) {
+    public ClientHandler(Socket socket, BookClient bookClient) {
         this.socket = socket;
+        this.bookClient=bookClient;
     }
 
     public BufferedWriter getWriter() {
@@ -84,7 +87,7 @@ private void handleRegisterRequest(String request) {
             // Call the method to add the user to the database
             DBMethods.addUser(name, username, password, role);
             System.out.println("User registered successfully: " + name);
-
+            bookClient.setCurrentUser(username);
             // Notify the current client about registration result
             BookServer.notifyRegisterResult(username, true, null, this); // Null for no specific reason
         } else {
@@ -109,6 +112,7 @@ private void handleRegisterRequest(String request) {
                 boolean loginSuccess = DBMethods.checkCredentials(username, password);
                 if (loginSuccess) {
                     System.out.println("Login successful for user: " + username);
+                    bookClient.setCurrentUser(username);
                     // Notify the current client about login success
                     BookServer.notifyLoginResult(username, 200, this); // 200 indicates success
                 } else {
@@ -145,8 +149,9 @@ private void handleRegisterRequest(String request) {
                 String genre = requestParts[3];
                 double price = Double.parseDouble(requestParts[4]);
                 int quantity = Integer.parseInt(requestParts[5]);
+                String currentuser = bookClient.getCurrentUser();
                 // Call the method to add the book to the database
-                DBMethods.addBook(title, author, genre, price, quantity);
+                DBMethods.addBook(title, author, genre, price, quantity,currentuser);
                 // Notify the server that a book has been added
 //                BookServer.notifyBookAdded("Book added: " + title);
             } else {
