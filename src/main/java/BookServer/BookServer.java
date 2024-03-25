@@ -33,18 +33,15 @@ public class BookServer {
         }
     }
 
-//    public static void notifyBookAdded(String message) {
-//        // Notify all connected clients that a book has been added
-//        for (ClientHandler client : users) {
-//            try {
-//                client.getWriter().write(message);
-//                client.getWriter().newLine();
-//                client.getWriter().flush();
-//            } catch (IOException e) {
-//                System.out.println("Error notifying client: " + e.getMessage());
-//            }
-//        }
-//    }
+    public static void notifyBookAdded(String title, ClientHandler clientHandler) {
+        try {
+            clientHandler.getWriter().write("BOOK_ADDED," + title);
+            clientHandler.getWriter().newLine();
+            clientHandler.getWriter().flush();
+        } catch (IOException e) {
+            System.out.println("Error notifying client: " + e.getMessage());
+        }
+    }
 
     public static void notifyLoginResult(String username, int statusCode, ClientHandler clientHandler) {
         // Notify the client about login result with appropriate status code
