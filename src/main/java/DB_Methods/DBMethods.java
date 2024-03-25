@@ -15,6 +15,7 @@ import static com.mongodb.client.model.Filters.eq;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class DBMethods {
 
@@ -93,6 +94,26 @@ public class DBMethods {
 
             return bookList;
         }catch (Exception e) {
+            System.err.println(e.toString());
+        }
+        return null;
+    }
+    public static List<Document> searchBooks(String keyword, String field) {
+        DB.initializeDatabaseConnection();
+        try {
+            MongoCollection<Document> bookcol = DB.getBookCollection();
+            List<Document> bookList = new ArrayList<>();
+
+            // Create a query to search for books based on the specified field and keyword
+            Bson searchQuery = Filters.regex(field, Pattern.compile(keyword, Pattern.CASE_INSENSITIVE));
+            FindIterable<Document> books = bookcol.find(searchQuery);
+
+            // Iterate through the documents
+            for (Document bookDoc : books) {
+                bookList.add(bookDoc);
+            }
+            return bookList;
+        } catch (Exception e) {
             System.err.println(e.toString());
         }
         return null;

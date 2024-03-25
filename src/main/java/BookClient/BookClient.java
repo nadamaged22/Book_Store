@@ -52,6 +52,9 @@ public class BookClient {
                         case "2":
                             seeAvailableBooks(writer,serverReader);
                             break;
+                        case "3":
+                            searchBooks(scanner,writer,serverReader);
+                            break;
                         case "logout":
                             loggedIn = false;
                             break;
@@ -77,6 +80,7 @@ public class BookClient {
         System.out.println("\nBook Menu:");
         System.out.println("1. Add Book");
         System.out.println("2. Show All Books");
+        System.out.println("3. Search For Book");
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
@@ -201,6 +205,66 @@ public class BookClient {
             System.out.println(response);
         }
     }
+    private void searchBooks(Scanner scanner, BufferedWriter writer, BufferedReader serverReader) throws IOException {
+        String keyword;
+        String field;
+
+        boolean searchAgain = true;
+
+        while (searchAgain) {
+            System.out.println("Search by:\n1. Title\n2. Author\n3. Genre");
+            int choice;
+            do {
+                System.out.print("Enter your choice: ");
+                choice = Integer.parseInt(scanner.nextLine().trim());
+
+                switch (choice) {
+                    case 1:
+                        field = "title";
+                        break;
+                    case 2:
+                        field = "author";
+                        break;
+                    case 3:
+                        field = "genre";
+                        break;
+                    default:
+                        System.out.println("Invalid choice. Please choose a number between 1 and 3.");
+                        continue; // Prompt the user again
+                }
+
+                System.out.println("Enter search keyword:");
+                keyword = scanner.nextLine().trim();
+
+                // Send request to server to search for books
+                writer.write("SEARCH_BOOKS," + keyword + "," + field);
+                writer.newLine();
+                writer.flush();
+
+                String response;
+                boolean foundResults = false; // Track if any results were found
+                System.out.println("Search results:");
+                while ((response = serverReader.readLine()) != null) {
+                    if (response.equals("END_OF_SEARCH")) {
+                        if (!foundResults) {
+                            System.out.println("No matching books found.");
+                        }
+                        break; // Stop reading when encountering the delimiter
+                    }
+                    foundResults = true;
+                    System.out.println(response);
+                }
+                if (response == null) {
+                    System.out.println("No matching books found.");
+                }
+            } while (choice < 1 || choice > 3);
+
+            System.out.println("Do you want to search again? (yes/no)");
+            String searchAgainInput = scanner.nextLine().trim().toLowerCase();
+            searchAgain = searchAgainInput.equals("yes");
+        }
+    }
+
     private void seeAvailableUsers(BufferedWriter writer, BufferedReader serverReader) throws IOException {
         writer.write("SEE_USERS");
         writer.newLine();
@@ -214,7 +278,6 @@ public class BookClient {
             System.out.println(response);
         }
     }
-
 
     private void addBook(BufferedWriter writer, BufferedReader serverReader ,Scanner scanner) throws IOException {
 
