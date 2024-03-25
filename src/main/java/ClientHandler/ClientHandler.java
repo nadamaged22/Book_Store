@@ -49,6 +49,9 @@ public class ClientHandler implements Runnable {
                 if (request.startsWith("SEE_BOOKS")) {
                     handleSeeBooksRequest(); // Pass the reader to handleAddBookRequest
                 }
+                if (request.startsWith("SEARCH_BOOKS")) {
+                   handleSearchBooksRequest(request); // Pass the reader to handleAddBookRequest
+                }
                 if (request.startsWith("SEE_USERS")) {
                     handleSeeUsersRequest(); // Pass the reader to handleAddBookRequest
                 }
@@ -154,7 +157,6 @@ private void handleRegisterRequest(String request) {
                 DBMethods.addBook(title, author, genre, price, quantity,currentuser);
                 // Notify the server that a book has been added
                 BookServer.notifyBookAdded(title, this);
-//                BookServer.notifyBookAdded("Book added: " + title);
             } else {
                 System.out.println("Invalid request format: " + request);
             }
@@ -163,12 +165,23 @@ private void handleRegisterRequest(String request) {
             System.out.println("Error handling add book request: " + e.getMessage());
         }
     }
+    private String formatBookDetails(Document bookDoc) {
+        int bookId = bookDoc.getInteger("_id");
+        String title = bookDoc.getString("title");
+        String author = bookDoc.getString("author");
+        String genre = bookDoc.getString("genre");
+        int quantity = bookDoc.getInteger("quantity");
+        double price = bookDoc.getDouble("price");
+        String addedBy = bookDoc.getString("addedBy");
+
+        return String.format("Book ID: %d%nTitle: %s%nAuthor: %s%nGenre: %s%nPrice: %.2f%nQuantity: %d%nAdded By: %s%n",
+                bookId, title, author, genre, price, quantity, addedBy);
+    }
 
     private void handleSeeBooksRequest() {
         try {
             // Retrieve all books from the database
             List<Document> books = DBMethods.showAvailableBooks();
-
             // Check if there are any books in the database
             if (books.isEmpty()) {
                 // Notify the client that there are no books available
@@ -178,19 +191,7 @@ private void handleRegisterRequest(String request) {
             } else {
                 // Send the list of books to the client
                 for (Document bookDoc : books) {
-                    // Retrieve the numeric values
-                    int bookId = bookDoc.getInteger("_id");
-                    String title = bookDoc.getString("title");
-                    String author = bookDoc.getString("author");
-                    String genre = bookDoc.getString("genre");
-                    // Retrieve quantity as Integer
-                    int quantity = bookDoc.getInteger("quantity");
-                    // Retrieve price as Double
-                    double price = bookDoc.getDouble("price");
-                    String addedBy = bookDoc.getString("addedBy");
-                    // Format the book details and send them to the client
-                    String bookDetails = String.format("Book ID: %d%nTitle: %s%nAuthor: %s%nGenre: %s%nPrice: %.2f%nQuantity: %d%nAdded By: %s%n",
-                            bookId, title, author, genre, price, quantity,addedBy);
+                    String bookDetails = formatBookDetails(bookDoc);
                     writer.write(bookDetails);
                     writer.newLine();
                     writer.flush();
@@ -202,6 +203,45 @@ private void handleRegisterRequest(String request) {
             }
         } catch (IOException e) {
             System.out.println("Error handling see books request: " + e.getMessage());
+        }
+    }
+    private void handleSearchBooksRequest(String request) {
+        try {
+            // Parse the request and handle searching for books in the database
+            String[] requestParts = request.split(",");
+            // Check if requestParts contains enough elements
+            if (requestParts.length == 3) {
+                // Extract search keyword and field from requestParts
+                String keyword = requestParts[1];
+                String field = requestParts[2];
+
+                // Retrieve books based on search criteria from the database
+                List<Document> books = DBMethods.searchBooks(keyword, field);
+
+                // Check if there are any books found
+                if (books.isEmpty()) {
+                    // Notify the client that no matching books were found
+                    writer.write("END_OF_SEARCH");
+                    writer.newLine();
+                    writer.flush();
+                } else {
+                    // Send the list of matching books to the client
+                    for (Document bookDoc : books) {
+                        String bookDetails = formatBookDetails(bookDoc);
+                        writer.write(bookDetails);
+                        writer.newLine();
+                        writer.flush();
+                    }
+                    // Add a delimiter to mark the end of the list of books
+                    writer.write("END_OF_SEARCH");
+                    writer.newLine();
+                    writer.flush();
+                }
+            } else {
+                System.out.println("Invalid request format: " + request);
+            }
+        } catch (IOException e) {
+            System.out.println("Error handling search request: " + e.getMessage());
         }
     }
     private void handleSeeUsersRequest() {
