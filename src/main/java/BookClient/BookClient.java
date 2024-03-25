@@ -43,11 +43,14 @@ public class BookClient {
                             System.out.println("Invalid choice. Please try again.");
                     }
                 } else {
-                    displayBookMenu();
+                        displayBookMenu();
                     String choice = scanner.nextLine();
                     switch (choice) {
                         case "1":
-                            addBook(writer, scanner);
+                            addBook(writer, serverReader, scanner);
+                            break;
+                        case "2":
+                            seeAvailableBooks(writer,serverReader);
                             break;
                         case "logout":
                             loggedIn = false;
@@ -68,13 +71,12 @@ public class BookClient {
         System.out.println("2. Login");
         System.out.println("Type 'exit' to finish.");
         System.out.print("Enter your choice: ");
-//        System.out.println("1. See available books");
-//        System.out.println("2. Add a book");
-//        System.out.println("Enter your choice (Type 'exit' to finish): ");
+
     }
     private void displayBookMenu() {
         System.out.println("\nBook Menu:");
         System.out.println("1. Add Book");
+        System.out.println("2. Show All Books");
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
@@ -214,8 +216,7 @@ public class BookClient {
     }
 
 
-
-    private void addBook(BufferedWriter writer, Scanner scanner) throws IOException {
+    private void addBook(BufferedWriter writer, BufferedReader serverReader ,Scanner scanner) throws IOException {
 
         System.out.println("Enter book details:");
         System.out.print("Title: ");
@@ -257,6 +258,24 @@ public class BookClient {
         writer.write("ADD_BOOK," + title + "," + author + "," + genre + "," + price + "," + quantity + "," + currentUser);
         writer.newLine();
         writer.flush();
+        // Read response from server
+        String response = serverReader.readLine();
+        if (response != null) {
+            String[] responseParts = response.split(",");
+            if (responseParts.length >= 2) {
+                String addBookStatus = responseParts[0];
+                String bookTitle = responseParts[1];
+                if (addBookStatus.equals("BOOK_ADDED")) {
+                    System.out.println("Book added successfully: " + bookTitle);
+                } else {
+                    System.out.println("Failed to add book: " + bookTitle);
+                }
+            } else {
+                System.out.println("Invalid response from server.");
+            }
+        } else {
+            System.out.println("No response from server.");
+        }
     }
 
     public static void main(String[] args) {

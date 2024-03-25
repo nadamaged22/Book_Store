@@ -153,6 +153,7 @@ private void handleRegisterRequest(String request) {
                 // Call the method to add the book to the database
                 DBMethods.addBook(title, author, genre, price, quantity,currentuser);
                 // Notify the server that a book has been added
+                BookServer.notifyBookAdded(title, this);
 //                BookServer.notifyBookAdded("Book added: " + title);
             } else {
                 System.out.println("Invalid request format: " + request);
@@ -186,9 +187,10 @@ private void handleRegisterRequest(String request) {
                     int quantity = bookDoc.getInteger("quantity");
                     // Retrieve price as Double
                     double price = bookDoc.getDouble("price");
+                    String addedBy = bookDoc.getString("addedBy");
                     // Format the book details and send them to the client
-                    String bookDetails = String.format("Book ID: %d%nTitle: %s%nAuthor: %s%nGenre: %s%nPrice: %.2f%nQuantity: %d%n",
-                            bookId, title, author, genre, price, quantity);
+                    String bookDetails = String.format("Book ID: %d%nTitle: %s%nAuthor: %s%nGenre: %s%nPrice: %.2f%nQuantity: %d%nAdded By: %s%n",
+                            bookId, title, author, genre, price, quantity,addedBy);
                     writer.write(bookDetails);
                     writer.newLine();
                     writer.flush();
