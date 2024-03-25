@@ -52,7 +52,7 @@ public class DBMethods {
         try {
             MongoCollection<Document> collection = DB.getUserCollection();
             Document query = new Document("username", username)
-                    .append("password", password); // Adjust the query to search for both username and password
+                    .append("password", password);
             FindIterable<Document> result = collection.find(query);
             return result.iterator().hasNext();
         } catch (Exception e) {
@@ -60,7 +60,7 @@ public class DBMethods {
         }
         return false;
     }
-    public static void addBook(String title,String author,String genre,double price,int quantity){
+    public static void addBook(String title,String author,String genre,double price,int quantity,String addedBy){
         try{
             MongoCollection<Document> bookcol= DB.getBookCollection();
             // Get the next sequence value
@@ -71,7 +71,8 @@ public class DBMethods {
                     .append("author", author)
                     .append("genre", genre)
                     .append("price", price)
-                    .append("quantity", quantity);
+                    .append("quantity", quantity)
+                    .append("addedBy", addedBy);
 
             bookcol.insertOne(doc);
         }catch (Exception e) {

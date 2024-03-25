@@ -1,5 +1,6 @@
 package BookServer;
 
+import BookClient.BookClient;
 import ClientHandler.ClientHandler;
 import DBConnection.DB;
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class BookServer {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    ClientHandler clientHandler = new ClientHandler(socket);
+                    ClientHandler clientHandler = new ClientHandler(socket,new BookClient("localhost",6666));
                     users.add(clientHandler);
                     Thread t = new Thread(clientHandler);
                     t.start();

@@ -12,6 +12,7 @@ public class BookClient {
     private int port;
     private String host;
     private boolean loggedIn;
+    private String currentUser;
 
     public BookClient(String host, int port) {
         this.host = host;
@@ -77,11 +78,15 @@ public class BookClient {
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
+    public void setCurrentUser(String currentUser) {
+        this.currentUser = currentUser;
+    }
+
+
     private void registerUser(BufferedWriter writer, BufferedReader serverReader, Scanner scanner) throws IOException {
         System.out.println("Enter user details:");
         System.out.print("Name: ");
         String name = scanner.nextLine();
-
         // Ask for username and validate uniqueness
         System.out.print("Username: ");
         String username = scanner.nextLine();
@@ -123,8 +128,10 @@ public class BookClient {
                 String registerStatus = responseParts[0];
                 String user = responseParts[1];
                 if (registerStatus.equals("REGISTER_SUCCESS")) {
+                    setCurrentUser(user);
                     System.out.println("Registration successful for user: " + user);
                     loggedIn = true;
+
                 } else if (registerStatus.equals("REGISTER_FAILURE")) {
                     String failureReason = responseParts.length >= 3 ? responseParts[2] : "Reason not specified";
                     System.out.println("Registration failed for user: " + user + ". Reason: " + failureReason);
@@ -160,8 +167,10 @@ public class BookClient {
                 String user = responseParts[2];
                 if (loginStatus.equals("LOGIN_RESULT")) {
                     if (statusCode == 200) {
+                        setCurrentUser(user);
                         System.out.println("Login successful for user: " + user +" "+ "statusCode: "+statusCode);
                         loggedIn = true;
+
                     } else {
                         System.out.println("Login failed for user: " + user +" "+ "statusCode: "+ statusCode);
                     }
@@ -172,6 +181,9 @@ public class BookClient {
                 System.out.println("No response from server.");
             }
         }
+    }
+    public String getCurrentUser() {
+        return currentUser;
     }
 
     private void seeAvailableBooks(BufferedWriter writer, BufferedReader serverReader) throws IOException {
@@ -200,6 +212,7 @@ public class BookClient {
             System.out.println(response);
         }
     }
+
 
 
     private void addBook(BufferedWriter writer, Scanner scanner) throws IOException {
@@ -239,8 +252,9 @@ public class BookClient {
                 System.out.println("Invalid input. Please enter a valid quantity.");
             }
         }
+        String currentUser = getCurrentUser();
         // Send request to server to add the book
-        writer.write("ADD_BOOK," + title + "," + author + "," + genre + "," + price + "," + quantity);
+        writer.write("ADD_BOOK," + title + "," + author + "," + genre + "," + price + "," + quantity + "," + currentUser);
         writer.newLine();
         writer.flush();
     }
