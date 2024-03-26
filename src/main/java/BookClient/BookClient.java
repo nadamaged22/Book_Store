@@ -55,6 +55,12 @@ public class BookClient {
                         case "3":
                             searchBooks(scanner,writer,serverReader);
                             break;
+                        case "4":
+                           borrowBook(writer,serverReader,scanner);
+                            break;
+                        case "5":
+                          viewBorrowingRequests(writer,serverReader);
+                            break;
                         case "logout":
                             loggedIn = false;
                             break;
@@ -81,6 +87,8 @@ public class BookClient {
         System.out.println("1. Add Book");
         System.out.println("2. Show All Books");
         System.out.println("3. Search For Book");
+        System.out.println("4. Borrow Book");
+        System.out.println("5. View Borrow Requests");
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
@@ -264,6 +272,125 @@ public class BookClient {
             searchAgain = searchAgainInput.equals("yes");
         }
     }
+    private void borrowBook(BufferedWriter writer, BufferedReader serverReader, Scanner scanner) throws IOException {
+        try {
+            // Send a request to the server to see available books
+            writer.write("SEE_BOOKS");
+            writer.newLine();
+            writer.flush();
+
+            // Receive and display available books from the server
+            String response;
+            System.out.println("Available books for borrowing:");
+            while ((response = serverReader.readLine()) != null) {
+                if (response.equals("END_OF_BOOKS")) {
+                    break; // Stop reading when encountering the delimiter
+                }
+                System.out.println(response);
+            }
+
+            // Prompt the user to enter the ID of the book they want to borrow
+            System.out.print("Enter the ID of the book you want to borrow: ");
+            String bookId = scanner.nextLine();
+
+            // Retrieve the addedBy field from the book database for the selected book
+            String LenderUsername = DBMethods.getLenderUsernameForBook(bookId);
+
+            // Send a request to the server to borrow the selected book
+            writer.write("BORROW_BOOK," + bookId + "," + LenderUsername);
+            writer.newLine();
+            writer.flush();
+
+            // Receive response from the server regarding the borrow request
+            String borrowResponse = serverReader.readLine();
+            if (borrowResponse != null) {
+                // Split the response to extract necessary information
+                String[] parts = borrowResponse.split(",");
+                if (parts.length >= 2) {
+                    String borrowStatus = parts[0];
+                    String bookID= parts[1];
+//                    String addedBy = parts[2]; // Extracting the addedBy field from the response
+                    if (borrowStatus.equals("BOOK_BORROWED")) {
+                        // If the book is successfully borrowed, notify the user
+                        System.out.println("You have successfully sent a borrow request for book: " + bookID);
+                    } else {
+                        // If the book borrowing fails, notify the user
+                        System.out.println("Failed to send borrow request: " + bookID);
+                    }
+                } else {
+                    // If the response from the server is invalid, notify the user
+                    System.out.println("Invalid response from server.");
+                }
+            } else {
+                // If there's no response from the server, notify the user
+                System.out.println("No response from server.");
+            }
+        } catch (IOException e) {
+            System.out.println("Error Sending Borrow Request : " + e.getMessage());
+        }
+    }
+    private void viewBorrowingRequests(BufferedWriter writer, BufferedReader serverReader) throws IOException {
+        // Send a request to the server to retrieve borrowing requests for Nada
+        writer.write("VIEW_BORROWING_REQUESTS");
+        writer.newLine();
+        writer.flush();
+
+        // Receive and display borrowing requests from the server
+        String response;
+        System.out.println("Borrowing Requests:");
+        boolean requestsAvailable = false;
+        while ((response = serverReader.readLine()) != null) {
+            if (response.equals("END_OF_REQUESTS")) {
+                break; // Stop reading when encountering the delimiter
+            }
+            System.out.println(response);
+            requestsAvailable = true;
+        }
+
+        if (requestsAvailable) {
+            acceptOrRejectRequests(writer);
+        } else {
+            System.out.println("No borrowing requests available.");
+        }
+    }
+    private void acceptOrRejectRequests(BufferedWriter writer) throws IOException {
+        System.out.print("Do you want to accept or reject any requests? (yes/no): ");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String userInput = reader.readLine();
+        if (userInput.equalsIgnoreCase("yes")) {
+            System.out.print("Enter the request ID you want to act upon: ");
+            String requestId = reader.readLine();
+            System.out.print("Enter 'accept' or 'reject' for this request: ");
+            String action = reader.readLine();
+
+            // Send the user's action to the server
+            writer.write("ACT_ON_REQUEST," + requestId + "," + action);
+            writer.newLine();
+            writer.flush();
+
+        }
+    }
+//    private void acceptOrRejectRequests(BufferedWriter writer) throws IOException {
+//        System.out.print("Do you want to accept or reject any requests? (yes/no): ");
+//        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))
+//        String userInput = reader.readLine();
+//        if (userInput.equalsIgnoreCase("yes")) {
+//            System.out.print("Enter the request ID you want to act upon: ");
+//            String requestId = reader.readLine();
+//            System.out.print("Enter 'accept' or 'reject' for this request: ");
+//            String action = reader.readLine();
+//
+//            // Send the user's action to the server
+//            writer.write("ACT_ON_REQUEST," + requestId + "," + action);
+//            writer.newLine();
+//            writer.flush();
+//
+//            // Read response from the server
+//            String response = reader.readLine();
+//            System.out.println("Server response: " + response);
+//        }
+//    }
+
 
     private void seeAvailableUsers(BufferedWriter writer, BufferedReader serverReader) throws IOException {
         writer.write("SEE_USERS");

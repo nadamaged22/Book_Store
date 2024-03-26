@@ -42,6 +42,31 @@ public class BookServer {
             System.out.println("Error notifying client: " + e.getMessage());
         }
     }
+    public static void notifyBookBorrowed(String title, ClientHandler clientHandler) {
+        try {
+            clientHandler.getWriter().write("BOOK_BORROWED," + title);
+            clientHandler.getWriter().newLine();
+            clientHandler.getWriter().flush();
+        } catch (IOException e) {
+            System.out.println("Error notifying client: " + e.getMessage());
+        }
+    }
+//    public static void notifyRequestAction(String action, ClientHandler clientHandler) {
+//        try {
+//            // Send the request action to the server for notification
+//            clientHandler.getWriter().write("NOTIFY_REQUEST_ACTION," + action);
+//            clientHandler.getWriter().newLine();
+//            clientHandler.getWriter().flush();
+//
+//            // Send a response back to the client indicating successful notification
+//            clientHandler.getWriter().write("NOTIFICATION_RECEIVED");
+//            clientHandler.getWriter().newLine();
+//            clientHandler.getWriter().flush();
+//        } catch (IOException e) {
+//            System.out.println("Error notifying server about request action: " + e.getMessage());
+//        }
+//    }
+
 
     public static void notifyLoginResult(String username, int statusCode, ClientHandler clientHandler) {
         // Notify the client about login result with appropriate status code
