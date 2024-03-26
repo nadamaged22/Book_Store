@@ -46,6 +46,9 @@ public class ClientHandler implements Runnable {
                 if (request.startsWith("ADD_BOOK")) {
                     handleAddBookRequest(request); // Pass the reader to handleAddBookRequest
                 }
+                if (request.startsWith("REMOVE_BOOK")) {
+                    handleRemoveBookRequest(request);
+                }
                 if (request.startsWith("SEE_BOOKS")) {
                     handleSeeBooksRequest(); // Pass the reader to handleAddBookRequest
                 }
@@ -172,6 +175,42 @@ private void handleRegisterRequest(String request) {
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             // Handle any errors gracefully
             System.out.println("Error handling add book request: " + e.getMessage());
+        }
+    }
+
+    private void handleRemoveBookRequest(String request) {
+        try {
+            // Check if the user is logged in
+            String currentUser = bookClient.getCurrentUser();
+            if (currentUser == null) {
+                System.out.println("User not logged in.");
+                return;
+            }
+
+            String[] requestParts = request.split(",");
+            if (requestParts.length >= 2) {
+                // Trim to remove leading/trailing spaces
+                String title = requestParts[1].trim();
+
+                // Call method from the DB Methods to remove the book
+                boolean removed = DBMethods.removeBook(title, currentUser);
+
+                // Notify the client about the outcome of the removal operation
+                if (removed) {
+                    // If the book was successfully removed, send a success message to the client
+                    BookServer.notifyBookRemoved(title);
+                } else {
+                    // If the book removal failed, send a failure message to the client
+                    // (You can adjust the message format as needed)
+                    BookServer.notifyBookNotFound(title);
+
+                    System.out.println("Failed to remove book: " + title);
+                }
+            } else {
+                System.out.println("Invalid request format: " + request);
+            }
+        } catch (Exception e) {
+            System.out.println("Error handling remove book request: " + e.getMessage());
         }
     }
     private String formatBookDetails(Document bookDoc) {

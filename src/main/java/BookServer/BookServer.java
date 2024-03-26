@@ -42,6 +42,32 @@ public class BookServer {
             System.out.println("Error notifying client: " + e.getMessage());
         }
     }
+    //Method to notify all clients about book removal
+    public static void notifyBookRemoved(String title) {
+        // Notify all connected clients that a book has been removed
+        for (ClientHandler client : users) {
+            try {
+                client.getWriter().write("BOOK_REMOVED," + title);
+                client.getWriter().newLine();
+                client.getWriter().flush();
+            } catch (IOException e) {
+                System.out.println("Error notifying client: " + e.getMessage());
+            }
+        }
+    }
+    public static void notifyBookNotFound(String title) {
+        // Notify all connected clients that the requested book was not found
+        for (ClientHandler client : users) {
+            try {
+                client.getWriter().write("BOOK_CAN_NOT_BE_REMOVED," + title);
+                client.getWriter().newLine();
+                client.getWriter().flush();
+            } catch (IOException e) {
+                System.out.println("Error notifying client: " + e.getMessage());
+            }
+        }
+    }
+
     public static void notifyBookBorrowed(String title, ClientHandler clientHandler) {
         try {
             clientHandler.getWriter().write("BOOK_BORROWED," + title);

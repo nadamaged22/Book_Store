@@ -89,6 +89,7 @@ public class BookClient {
         System.out.println("3. Search For Book");
         System.out.println("4. Borrow Book");
         System.out.println("5. View Borrow Requests");
+        System.out.println("6. Remove Book");
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
