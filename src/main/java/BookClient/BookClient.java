@@ -50,12 +50,12 @@ public class BookClient {
                             addBook(writer, serverReader, scanner);
                             break;
                         case "2":
-                            removeBook(writer, serverReader, scanner);
-                            break;
-                        case "3":
                             seeAvailableBooks(writer,serverReader);
-                        case "4":
+                        case "3":
                             searchBooks(scanner,writer,serverReader);
+                            break;
+                        case "6":
+                            removeBook(writer, serverReader, scanner);
                             break;
                         case "logout":
                             loggedIn = false;
@@ -81,9 +81,9 @@ public class BookClient {
     private void displayBookMenu() {
         System.out.println("\nBook Menu:");
         System.out.println("1. Add Book");
-        System.out.println("2. Remove Book");
-        System.out.println("3. Show All Books");
-        System.out.println("4. Search For Book");
+        System.out.println("2. Show All Books");
+        System.out.println("3. Search For Book");
+        System.out.println("4. Remove Book");
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
