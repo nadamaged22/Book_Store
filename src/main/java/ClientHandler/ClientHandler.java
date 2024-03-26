@@ -44,28 +44,34 @@ public class ClientHandler implements Runnable {
                     handleLoginRequest(request);
                 }
                 if (request.startsWith("ADD_BOOK")) {
-                    handleAddBookRequest(request); // Pass the reader to handleAddBookRequest
+                    handleAddBookRequest(request);
                 }
                 if (request.startsWith("REMOVE_BOOK")) {
                     handleRemoveBookRequest(request);
                 }
                 if (request.startsWith("SEE_BOOKS")) {
-                    handleSeeBooksRequest(); // Pass the reader to handleAddBookRequest
+                    handleSeeBooksRequest();
                 }
                 if (request.startsWith("SEARCH_BOOKS")) {
-                   handleSearchBooksRequest(request); // Pass the reader to handleAddBookRequest
+                   handleSearchBooksRequest(request);
                 }
                 if (request.startsWith("BORROW_BOOK")) {
-                    handleBorrowingRequest(request); // Pass the reader to handleAddBookRequest
+                    handleBorrowingRequest(request);
+                }
+                if (request.startsWith("VIEW_REQUESTS_History")) {
+                    handleRequestHistory(request);
                 }
                 if (request.startsWith("VIEW_BORROWING_REQUESTS")) {
-                    handleRequest(request); // Pass the reader to handleAddBookRequest
+                    handleShowRequest(request);
                 }
                 if (request.startsWith("ACT_ON_REQUEST")) {
-                    handleAcceptRejectRequest(request,writer); // Pass the reader to handleAddBookRequest
+                    handleAcceptRejectRequest(request,writer);
+                }
+                if (request.startsWith("LIBRARY_STATUS_REQUEST")) {
+                   handleLibraryStatusRequest(request);
                 }
                 if (request.startsWith("SEE_USERS")) {
-                    handleSeeUsersRequest(); // Pass the reader to handleAddBookRequest
+                    handleSeeUsersRequest();
                 }
 
                 // Add more handlers for other types of requests if needed
@@ -190,21 +196,21 @@ private void handleRegisterRequest(String request) {
             String[] requestParts = request.split(",");
             if (requestParts.length >= 2) {
                 // Trim to remove leading/trailing spaces
-                String title = requestParts[1].trim();
+                String bookId = requestParts[1].trim();
 
                 // Call method from the DB Methods to remove the book
-                boolean removed = DBMethods.removeBook(title, currentUser);
+                boolean removed = DBMethods.removeBook(Integer.parseInt(bookId), currentUser);
 
                 // Notify the client about the outcome of the removal operation
                 if (removed) {
                     // If the book was successfully removed, send a success message to the client
-                    BookServer.notifyBookRemoved(title);
+                    BookServer.notifyBookRemoved(bookId);
                 } else {
                     // If the book removal failed, send a failure message to the client
                     // (You can adjust the message format as needed)
-                    BookServer.notifyBookNotFound(title);
+                    BookServer.notifyBookNotFound(bookId);
 
-                    System.out.println("Failed to remove book: " + title);
+                    System.out.println("Failed to remove book with ID: " + bookId);
                 }
             } else {
                 System.out.println("Invalid request format: " + request);
@@ -322,12 +328,77 @@ private void handleRegisterRequest(String request) {
             System.out.println("Error handling borrowing request: " + e.getMessage());
         }
     }
-    private void handleRequest(String request) {
+    private void handleRequestHistory(String request) {
+        try {
+            String[] requestParts = request.split(",");
+            if (requestParts.length == 1 && requestParts[0].equals("VIEW_REQUESTS_History")) {
+                // Retrieve borrowing requests for the current user (Nada) from the database
+                List<Document> requests = DBMethods. getRequestsHistory(bookClient.getCurrentUser());
+
+                // Send borrowing requests to the client
+                for (Document req : requests) {
+                    writer.write(req.toString()); // Assuming BorrowingRequest has a toString method
+                    writer.newLine();
+                }
+                writer.write("END_OF_REQUESTS");
+                writer.newLine();
+                writer.flush();
+            }
+        } catch (IOException e) {
+            System.out.println("Error handling request: " + e.getMessage());
+        }
+    }
+
+private void handleLibraryStatusRequest(String request) {
+    try {
+        String[] requestParts = request.split(",");
+        if (requestParts.length == 1 && requestParts[0].equals("LIBRARY_STATUS_REQUEST")) {
+            String currentUser = bookClient.getCurrentUser();
+            if (isAdmin(currentUser)) {
+                // User is an admin, retrieve the library status as a Document
+                Document libraryStatus = DBMethods.getLibraryStatusDocument();
+
+                if (libraryStatus != null) {
+                    // Send the library status to the client
+                    writer.write(libraryStatus.toJson());
+                    writer.newLine();
+                    writer.flush();
+                } else {
+                    // Handle the case when library status retrieval failed
+                    writer.write("Error: Failed to retrieve library status.");
+                    writer.newLine();
+                    writer.flush();
+                }
+            } else {
+                // User is not an admin, send a message indicating permission denied
+                writer.write("Permission denied: Only admins can view library status.");
+                writer.newLine();
+                writer.flush();
+            }
+        } else {
+            System.out.println("Invalid request format: " + request);
+        }
+    } catch (IOException e) {
+        System.out.println("Error handling library status request: " + e.getMessage());
+    }
+}
+    private boolean isAdmin(String username) {
+        try {
+            String role = DBMethods.getUserRole(username);
+            return role != null && role.equals("admin");
+        } catch (Exception e) {
+            System.err.println("Error checking user role: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+    private void handleShowRequest(String request) {
         try {
             String[] requestParts = request.split(",");
             if (requestParts.length == 1 && requestParts[0].equals("VIEW_BORROWING_REQUESTS")) {
                 // Retrieve borrowing requests for the current user (Nada) from the database
-                List<Document> requests = DBMethods.getBorrowingRequestsForLender(bookClient.getCurrentUser());
+                List<Document> requests = DBMethods. getPendingBorrowingRequestsForLender(bookClient.getCurrentUser());
 
                 // Send borrowing requests to the client
                 for (Document req : requests) {
@@ -364,6 +435,9 @@ private void handleRegisterRequest(String request) {
             System.out.println("Error handling accept/reject request: " + e.getMessage());
         }
     }
+
+
+
     private boolean processRequest(String requestId, String action) {
 //        String validRequestId = DBMethods.getRequestId(requestId);
 //        if (validRequestId == null) {
@@ -391,6 +465,9 @@ private void handleRegisterRequest(String request) {
             return false;
         }
     }
+
+
+
 
 
     private void handleSeeUsersRequest() {

@@ -9,8 +9,6 @@ import org.bson.Document;
 public class DB {
     private static  MongoClient client;
     private static  MongoDatabase db;
-    //intialize connection
-// Initialize connection
     public static void initializeDatabaseConnection() {
         client = MongoClients.create("mongodb+srv://nadamaged:nnn123nnn@atlascluster.jgnsmsu.mongodb.net/?retryWrites=true&w=majority&appName=AtlasCluster");
         // Access the database
