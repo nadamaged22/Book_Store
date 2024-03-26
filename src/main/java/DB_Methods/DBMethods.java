@@ -8,6 +8,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import static com.mongodb.client.model.Filters.eq;
@@ -78,6 +79,39 @@ public class DBMethods {
             bookcol.insertOne(doc);
         }catch (Exception e) {
             System.err.println(e.toString());
+        }
+    }
+
+    public static boolean removeBook(String title, String currentUser) {
+        try {
+            // Get the book Collection from DB
+            MongoCollection<Document> bookcol = DB.getBookCollection();
+
+            // Find the document with the specified title
+            Document bookDoc = bookcol.find(eq("title", title)).first();
+            if (bookDoc != null) {
+                String addedBy = bookDoc.getString("addedBy");
+                if (addedBy.equals(currentUser)) {
+                    // Delete the document with the specified title
+                    DeleteResult result = bookcol.deleteOne(new Document("title", title));
+                    if (result.getDeletedCount() > 0) {
+                        System.out.println("Book removed: " + title);
+                        return true; // Book successfully removed
+                    } else {
+                        System.out.println("Book not found: " + title);
+                        return false; // Book not found or not removed
+                    }
+                } else {
+                    System.out.println("You do not have permission to remove this book.");
+                    return false; // User does not have permission to remove this book
+                }
+            } else {
+                System.out.println("Book not found: " + title);
+                return false; // Book not found
+            }
+        } catch (Exception e) {
+            System.err.println("Error removing book: " + e.getMessage());
+            return false; // Exception occurred, book removal failed
         }
     }
 

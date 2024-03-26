@@ -50,9 +50,11 @@ public class BookClient {
                             addBook(writer, serverReader, scanner);
                             break;
                         case "2":
-                            seeAvailableBooks(writer,serverReader);
+                            removeBook(writer, serverReader, scanner);
                             break;
                         case "3":
+                            seeAvailableBooks(writer,serverReader);
+                        case "4":
                             searchBooks(scanner,writer,serverReader);
                             break;
                         case "logout":
@@ -79,8 +81,9 @@ public class BookClient {
     private void displayBookMenu() {
         System.out.println("\nBook Menu:");
         System.out.println("1. Add Book");
-        System.out.println("2. Show All Books");
-        System.out.println("3. Search For Book");
+        System.out.println("2. Remove Book");
+        System.out.println("3. Show All Books");
+        System.out.println("4. Search For Book");
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
@@ -340,6 +343,42 @@ public class BookClient {
             System.out.println("No response from server.");
         }
     }
+
+    private void removeBook(BufferedWriter writer, BufferedReader serverReader, Scanner scanner) throws IOException {
+        System.out.println("Enter the title of the book you want to remove:");
+        String title = scanner.nextLine();
+
+        String currentUser = getCurrentUser(); // Get the current user's username
+
+        // Send request to server to remove the book
+        writer.write("REMOVE_BOOK," + title + "," + currentUser); // Include currentUser parameter
+        writer.newLine();
+        writer.flush();
+
+        // Read response from server
+        String response = serverReader.readLine();
+        if (response != null) {
+            String[] responseParts = response.split(",");
+            if (responseParts.length >= 2) {
+                String removalStatus = responseParts[0];
+                String removedBookTitle = responseParts[1];
+                if (removalStatus.equals("BOOK_REMOVED")) {
+                    System.out.println("Book removed: " + removedBookTitle);
+                } else if (removalStatus.equals("BOOK_CAN_NOT_BE_REMOVED")) {
+                    System.out.println("Book can not be removed: " + removedBookTitle);
+                } else if (removalStatus.equals("REMOVAL_FAILED")) { // New status for failed removal due to permissions
+                    System.out.println("Failed to remove book: " + removedBookTitle + ". You do not have permission to remove this book.");
+                } else {
+                    System.out.println("Invalid response from server.");
+                }
+            } else {
+                System.out.println("Invalid response from server.");
+            }
+        } else {
+            System.out.println("No response from server.");
+        }
+    }
+
 
     public static void main(String[] args) {
         BookClient bookClient = new BookClient("localhost", 6666);
