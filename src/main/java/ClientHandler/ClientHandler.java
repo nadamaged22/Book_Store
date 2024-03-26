@@ -52,6 +52,15 @@ public class ClientHandler implements Runnable {
                 if (request.startsWith("SEARCH_BOOKS")) {
                    handleSearchBooksRequest(request); // Pass the reader to handleAddBookRequest
                 }
+                if (request.startsWith("BORROW_BOOK")) {
+                    handleBorrowingRequest(request); // Pass the reader to handleAddBookRequest
+                }
+                if (request.startsWith("VIEW_BORROWING_REQUESTS")) {
+                    handleRequest(request); // Pass the reader to handleAddBookRequest
+                }
+                if (request.startsWith("ACT_ON_REQUEST")) {
+                    handleAcceptRejectRequest(request,writer); // Pass the reader to handleAddBookRequest
+                }
                 if (request.startsWith("SEE_USERS")) {
                     handleSeeUsersRequest(); // Pass the reader to handleAddBookRequest
                 }
@@ -244,6 +253,107 @@ private void handleRegisterRequest(String request) {
             System.out.println("Error handling search request: " + e.getMessage());
         }
     }
+    private void handleBorrowingRequest(String request) {
+        try {
+            String[] requestParts = request.split(",");
+            if (requestParts.length == 3) { // Check if there are three parts in the request
+                String borrowingRequestType = requestParts[0];
+                String bookId = requestParts[1]; // Extract bookId from requestParts[1]
+                String lenderUsername = requestParts[2]; // Extract lenderUsername from requestParts[2]
+
+                if (borrowingRequestType.equals("BORROW_BOOK")) {
+                    // Retrieve borrowerUsername from the client
+                    String borrowerUsername = bookClient.getCurrentUser();
+
+                    // Add borrowing request to the database
+                    DBMethods.addBorrowingRequest(borrowerUsername, lenderUsername, Integer.parseInt(bookId));
+
+                    // Notify the client about successful request submission
+//                    writer.write("REQUEST_SUBMITTED");
+//                    writer.newLine();
+//                    writer.flush();
+                    BookServer.notifyBookBorrowed(bookId, this);
+                } else {
+                    System.out.println("Invalid borrowing request type: " + borrowingRequestType);
+                }
+            } else {
+                System.out.println("Invalid request format: " + request);
+            }
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            System.out.println("Error handling borrowing request: " + e.getMessage());
+        }
+    }
+    private void handleRequest(String request) {
+        try {
+            String[] requestParts = request.split(",");
+            if (requestParts.length == 1 && requestParts[0].equals("VIEW_BORROWING_REQUESTS")) {
+                // Retrieve borrowing requests for the current user (Nada) from the database
+                List<Document> requests = DBMethods.getBorrowingRequestsForLender(bookClient.getCurrentUser());
+
+                // Send borrowing requests to the client
+                for (Document req : requests) {
+                    writer.write(req.toString()); // Assuming BorrowingRequest has a toString method
+                    writer.newLine();
+                }
+                writer.write("END_OF_REQUESTS");
+                writer.newLine();
+                writer.flush();
+            }
+        } catch (IOException e) {
+            System.out.println("Error handling request: " + e.getMessage());
+        }
+    }
+    private void handleAcceptRejectRequest(String request, BufferedWriter writer) {
+        try {
+            String[] requestParts = request.split(",");
+            if (requestParts.length == 3 && requestParts[0].equals("ACT_ON_REQUEST")) {
+                String requestId = requestParts[1];
+                String action = requestParts[2];
+
+                // Process the request action here
+                boolean requestProcessed = processRequest(requestId, action);
+
+                // Send response to client
+                if (requestProcessed) {
+                    writer.write("REQUEST_ACTION_PROCESSED");
+                } else {
+                    writer.write("REQUEST_ACTION_FAILED");
+                }
+                writer.flush();
+            }
+        } catch (IOException e) {
+            System.out.println("Error handling accept/reject request: " + e.getMessage());
+        }
+    }
+    private boolean processRequest(String requestId, String action) {
+//        String validRequestId = DBMethods.getRequestId(requestId);
+//        if (validRequestId == null) {
+//            // Request ID is invalid or not found
+//            return false;
+//        }
+
+        try {
+            int parsedRequestId = Integer.parseInt(requestId);
+
+
+            // Process the request action here
+            if (action.equalsIgnoreCase("accept")) {
+                DBMethods.updateBorrowingRequestStatus(parsedRequestId, "Accepted");
+                return true;
+            } else if (action.equalsIgnoreCase("reject")) {
+              DBMethods.updateBorrowingRequestStatus(parsedRequestId, "Rejected");
+                return true;
+            } else {
+                System.out.println("Invalid action provided.");
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid request ID format.");
+            return false;
+        }
+    }
+
+
     private void handleSeeUsersRequest() {
         try {
             // Retrieve all users from the database

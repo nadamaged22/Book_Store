@@ -24,7 +24,9 @@ public class DB {
     public static MongoCollection<Document> getBookCollection(){
         return db.getCollection("Book");
     }
-    //get user collection
+    public static MongoCollection<Document> getRequestCollection(){
+        return db.getCollection("Request");
+    }
 
     public static MongoCollection<Document> getSequenceCollection(){
         return db.getCollection("sequences");
