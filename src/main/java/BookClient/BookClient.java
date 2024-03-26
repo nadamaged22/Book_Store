@@ -43,23 +43,32 @@ public class BookClient {
                             System.out.println("Invalid choice. Please try again.");
                     }
                 } else {
-                        displayBookMenu();
+                    displayBookMenu();
                     String choice = scanner.nextLine();
                     switch (choice) {
                         case "1":
                             addBook(writer, serverReader, scanner);
                             break;
                         case "2":
-                            seeAvailableBooks(writer,serverReader);
+                            removeBook(writer, serverReader, scanner);
                             break;
                         case "3":
-                            searchBooks(scanner,writer,serverReader);
+                            seeAvailableBooks(writer,serverReader);
                             break;
                         case "4":
-                           borrowBook(writer,serverReader,scanner);
+                            searchBooks(scanner,writer,serverReader);
                             break;
                         case "5":
-                          viewBorrowingRequests(writer,serverReader);
+                            borrowBook(writer,serverReader,scanner);
+                            break;
+                        case "6":
+                            viewBorrowingRequests(writer,serverReader);
+                            break;
+                        case "7":
+                            viewRequestsHistory(writer,serverReader);
+                            break;
+                        case "8":
+                          viewLibraryStatus(writer,serverReader);
                             break;
                         case "logout":
                             loggedIn = false;
@@ -85,11 +94,13 @@ public class BookClient {
     private void displayBookMenu() {
         System.out.println("\nBook Menu:");
         System.out.println("1. Add Book");
-        System.out.println("2. Show All Books");
-        System.out.println("3. Search For Book");
-        System.out.println("4. Borrow Book");
-        System.out.println("5. View Borrow Requests");
-        System.out.println("6. Remove Book");
+        System.out.println("2. Remove Book");
+        System.out.println("3. Show All Books");
+        System.out.println("4. Search For Book");
+        System.out.println("5. Borrow Book");
+        System.out.println("6. View Borrow Requests");
+        System.out.println("7. View My Requests History");
+        System.out.println("8. View Library overall statistics");
         System.out.println("Type 'logout' to logout.");
         System.out.print("Enter your choice: ");
     }
@@ -354,6 +365,29 @@ public class BookClient {
             System.out.println("No borrowing requests available.");
         }
     }
+    private void viewRequestsHistory(BufferedWriter writer, BufferedReader serverReader) throws IOException {
+        // Send a request to the server to retrieve borrowing requests for Nada
+        writer.write("VIEW_REQUESTS_History");
+        writer.newLine();
+        writer.flush();
+
+        // Receive and display borrowing requests from the server
+        String response;
+        System.out.println("Borrowing Requests:");
+        boolean requestsAvailable = false;
+        while ((response = serverReader.readLine()) != null) {
+            if (response.equals("END_OF_REQUESTS")) {
+                break; // Stop reading when encountering the delimiter
+            }
+            System.out.println(response);
+            requestsAvailable = true;
+        }
+
+        if (!requestsAvailable) {
+            System.out.println("No borrowing requests available.");
+        }
+    }
+
     private void acceptOrRejectRequests(BufferedWriter writer) throws IOException {
         System.out.print("Do you want to accept or reject any requests? (yes/no): ");
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -368,29 +402,48 @@ public class BookClient {
             writer.write("ACT_ON_REQUEST," + requestId + "," + action);
             writer.newLine();
             writer.flush();
-
         }
     }
-//    private void acceptOrRejectRequests(BufferedWriter writer) throws IOException {
-//        System.out.print("Do you want to accept or reject any requests? (yes/no): ");
-//        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))
-//        String userInput = reader.readLine();
-//        if (userInput.equalsIgnoreCase("yes")) {
-//            System.out.print("Enter the request ID you want to act upon: ");
-//            String requestId = reader.readLine();
-//            System.out.print("Enter 'accept' or 'reject' for this request: ");
-//            String action = reader.readLine();
-//
-//            // Send the user's action to the server
-//            writer.write("ACT_ON_REQUEST," + requestId + "," + action);
-//            writer.newLine();
-//            writer.flush();
-//
-//            // Read response from the server
-//            String response = reader.readLine();
-//            System.out.println("Server response: " + response);
-//        }
-//    }
+
+private void viewLibraryStatus(BufferedWriter writer, BufferedReader serverReader) throws IOException {
+    try {
+        if (!isAdmin(currentUser)) {System.out.println("Permission denied: Only admins can view library status.");
+               return;
+            }
+        // Send a request to the server to handle the library status request
+        writer.write("LIBRARY_STATUS_REQUEST");
+        writer.newLine();
+        writer.flush();
+
+        // Receive the library status from the server as a Document
+        String response = serverReader.readLine();
+        if (response != null) {
+            System.out.println("Library status:");
+            // Parse the response to a Document
+            Document libraryStatus = Document.parse(response);
+
+            // Extract the information from the document and display it in a list view
+            for (String key : libraryStatus.keySet()) {
+                System.out.println(key + ": " + libraryStatus.get(key));
+            }
+        } else {
+            System.out.println("No response from server.");
+        }
+    } catch (IOException e) {
+        System.out.println("Error viewing library status: " + e.getMessage());
+    }
+}
+    private boolean isAdmin(String username) {
+        try {
+            String role = DBMethods.getUserRole(username);
+            return role != null && role.equals("admin");
+        } catch (Exception e) {
+            System.err.println("Error checking user role: " + e.getMessage());
+            return false;
+        }
+    }
+
+
 
 
     private void seeAvailableUsers(BufferedWriter writer, BufferedReader serverReader) throws IOException {
@@ -408,7 +461,6 @@ public class BookClient {
     }
 
     private void addBook(BufferedWriter writer, BufferedReader serverReader ,Scanner scanner) throws IOException {
-
         System.out.println("Enter book details:");
         System.out.print("Title: ");
         String title = scanner.nextLine();
@@ -460,6 +512,40 @@ public class BookClient {
                     System.out.println("Book added successfully: " + bookTitle);
                 } else {
                     System.out.println("Failed to add book: " + bookTitle);
+                }
+            } else {
+                System.out.println("Invalid response from server.");
+            }
+        } else {
+            System.out.println("No response from server.");
+        }
+    }
+    private void removeBook(BufferedWriter writer, BufferedReader serverReader, Scanner scanner) throws IOException {
+        System.out.print("Enter the ID of the book you want to remove: ");
+        String bookId = scanner.nextLine();
+
+        String currentUser = getCurrentUser(); // Get the current user's username
+
+        // Send request to server to remove the book by ID
+        writer.write("REMOVE_BOOK_BY_ID," + bookId + "," + currentUser); // Include currentUser parameter
+        writer.newLine();
+        writer.flush();
+
+        // Read response from server
+        String response = serverReader.readLine();
+        if (response != null) {
+            String[] responseParts = response.split(",");
+            if (responseParts.length >= 2) {
+                String removalStatus = responseParts[0];
+                String removedBookTitle = responseParts[1];
+                if (removalStatus.equals("BOOK_REMOVED")) {
+                    System.out.println("Book removed: " + removedBookTitle);
+                } else if (removalStatus.equals("BOOK_CAN_NOT_BE_REMOVED")) {
+                    System.out.println("Book can not be removed: " + removedBookTitle);
+                } else if (removalStatus.equals("REMOVAL_FAILED")) { // New status for failed removal due to permissions
+                    System.out.println("Failed to remove book: " + removedBookTitle + ". You do not have permission to remove this book.");
+                } else {
+                    System.out.println("Invalid response from server.");
                 }
             } else {
                 System.out.println("Invalid response from server.");
